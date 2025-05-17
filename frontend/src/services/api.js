@@ -1,19 +1,18 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add token to requests
+// Request interceptor for adding auth token
 api.interceptors.request.use(
-  async (config) => {
-    const token = await AsyncStorage.getItem('token');
+  (config) => {
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,38 +23,38 @@ api.interceptors.request.use(
   }
 );
 
-// Handle token expiration
+// Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('token');
-      // Navigate to login screen (implement navigation ref)
+      localStorage.removeItem('token');
+      // You might want to redirect to login page here
     }
     return Promise.reject(error);
   }
 );
 
 export const authAPI = {
-  register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
-  verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
-  getCurrentUser: () => api.get('/auth/me'),
-  updateProfile: (data) => api.put('/auth/profile', data),
-  changePassword: (data) => api.put('/auth/change-password', data),
-  requestPasswordReset: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (data) => api.post('/auth/reset-password', data),
+  register: (userData) => api.post('/auth/register', userData),
 };
 
 export const loanAPI = {
-  applyForLoan: (loanData) => api.post('/loans/apply', loanData),
-  getLoanDetails: (loanId) => api.get(`/loans/${loanId}`),
-  processLoanApplication: (loanId, data) => api.put(`/loans/${loanId}/process`, data),
-  disburseLoan: (loanId) => api.post(`/loans/${loanId}/disburse`),
-  processRepayment: (loanId, data) => api.post(`/loans/${loanId}/repay`, data),
-  getBorrowerLoans: () => api.get('/loans/borrower/me'),
-  getLenderLoans: () => api.get('/loans/lender/me'),
-  getAvailableLoans: () => api.get('/loans/available'),
+  getLoans: () => api.get('/loans'),
+  getLoanById: (id) => api.get(`/loans/${id}`),
+  createLoan: (loanData) => api.post('/loans', loanData),
+  updateLoan: (id, loanData) => api.put(`/loans/${id}`, loanData),
+};
+
+export const userAPI = {
+  getProfile: () => api.get('/users/profile'),
+  updateProfile: (userData) => api.put('/users/profile', userData),
+};
+
+export const paymentAPI = {
+  getPayments: () => api.get('/payments'),
+  makePayment: (paymentData) => api.post('/payments', paymentData),
 };
 
 export default api; 
