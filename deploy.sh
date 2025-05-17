@@ -1,29 +1,44 @@
 #!/bin/bash
 
-# Build and deploy backend
-echo "Building backend..."
-cd backend
+# Exit on error
+set -e
+
+echo "Starting deployment process..."
+
+# Build frontend first
+echo "Building frontend..."
+cd frontend
+npm install
+npm run build
+
+# Create production build directory in backend
+echo "Setting up static files..."
+mkdir -p ../backend/public
+cp -r build/* ../backend/public/
+
+# Deploy backend
+echo "Building and deploying backend..."
+cd ../backend
 npm install
 npm run build
 
 # Copy production environment file
-cp .env.production .env
+if [ -f .env.production ]; then
+  cp .env.production .env
+else
+  echo "Warning: .env.production not found. Make sure to set up environment variables."
+fi
 
+# Stop existing PM2 process if it exists
+pm2 stop mobile-lending-backend || true
+pm2 delete mobile-lending-backend || true
+
+# Start new PM2 process
 echo "Starting backend server..."
 pm2 start npm --name "mobile-lending-backend" -- start
 
-# Build and deploy frontend
-echo "Building frontend..."
-cd ../frontend
-npm install
-npm run build
+# Save PM2 process list
+pm2 save
 
-# Copy production environment file
-cp .env.production .env
-
-# Deploy frontend build to web server
-echo "Deploying frontend..."
-# Add your deployment commands here, e.g.:
-# rsync -avz build/ user@your-server:/var/www/html/
-
-echo "Deployment completed!" 
+echo "Deployment completed successfully!"
+echo "Application should now be accessible at http://localhost:5000" 

@@ -1,90 +1,63 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Platform } from 'react-native';
 import { useSelector } from 'react-redux';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-// Auth Screens
-import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
-
-// Main Screens (to be created)
-import Home from '../pages/Home';
-import LoanRequest from '../pages/loans/LoanRequest';
-import LoanHistory from '../pages/loans/LoanHistory';
-import Profile from '../pages/Profile';
-
 import { selectIsAuthenticated } from '../store/slices/authSlice';
-import { THEME_COLORS } from '../config/constants';
+
+// Import your screens
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import HomeScreen from '../screens/HomeScreen';
+import LoanScreen from '../screens/LoanScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-const MainTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
-
-        switch (route.name) {
-          case 'Home':
-            iconName = focused ? 'home' : 'home-outline';
-            break;
-          case 'LoanRequest':
-            iconName = focused ? 'cash' : 'cash-outline';
-            break;
-          case 'LoanHistory':
-            iconName = focused ? 'history' : 'history-outline';
-            break;
-          case 'Profile':
-            iconName = focused ? 'account' : 'account-outline';
-            break;
-          default:
-            iconName = 'circle';
-        }
-
-        return <Icon name={iconName} size={size} color={color} />;
-      },
-      tabBarActiveTintColor: THEME_COLORS.primary,
-      tabBarInactiveTintColor: THEME_COLORS.disabled,
-      headerShown: false,
-    })}
-  >
-    <Tab.Screen name="Home" component={Home} />
-    <Tab.Screen
-      name="LoanRequest"
-      component={LoanRequest}
-      options={{ title: 'Request Loan' }}
-    />
-    <Tab.Screen
-      name="LoanHistory"
-      component={LoanHistory}
-      options={{ title: 'Loan History' }}
-    />
-    <Tab.Screen name="Profile" component={Profile} />
-  </Tab.Navigator>
-);
 
 const Navigation = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      linking={Platform.select({
+        web: {
+          config: {
+            screens: {
+              Login: '/login',
+              Register: '/register',
+              Home: '/',
+              Loan: '/loan/:id',
+              Profile: '/profile',
+            },
+          },
+          prefixes: [window.location.origin],
+        },
+        default: {},
+      })}
+      fallback={<LoadingScreen />}
+    >
       <Stack.Navigator
         screenOptions={{
-          headerShown: false,
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: '#f4511e',
+          },
+          headerTintColor: '#fff',
         }}
       >
         {!isAuthenticated ? (
           // Auth Stack
-          <Stack.Group>
-            <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="Register" component={Register} />
-          </Stack.Group>
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
         ) : (
-          // Main Stack
-          <Stack.Screen name="MainTabs" component={MainTabs} />
+          // App Stack
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Loan" component={LoanScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
